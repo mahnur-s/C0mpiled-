@@ -1,5 +1,19 @@
 // Shared browser helpers. All DOM text goes through textContent (el()), never innerHTML.
 
+// Never leave a blank page: show any unexpected failure at the top of the screen.
+window.addEventListener('unhandledrejection', (e) => {
+  const msg = (e.reason && e.reason.message) || String(e.reason);
+  if (msg === 'Please log in.') return;
+  let bar = document.getElementById('fatal');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'fatal';
+    bar.className = 'note warn';
+    document.body.prepend(bar);
+  }
+  bar.textContent = `Haru couldn't load this page: ${msg}. If you just updated Haru, close the old server window and run start.bat again.`;
+});
+
 export async function api(method, path, body) {
   const r = await fetch(path, {
     method,

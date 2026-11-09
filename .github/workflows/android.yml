@@ -1,0 +1,28 @@
+name: Android app
+
+on:
+  push:
+    paths: ["android/**", ".github/workflows/android.yml"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+      - name: Build debug APK
+        working-directory: android
+        # Set the repository variable HARU_SERVER_URL (Settings > Secrets and variables > Actions > Variables)
+        # to your deployed server, e.g. https://haru-pilot.fly.dev, so the app connects there by default.
+        run: gradle assembleDebug -PharuServerUrl="${{ vars.HARU_SERVER_URL }}" --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: haru-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk

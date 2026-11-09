@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Haru" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">#185FA5</item>
+        <item name="colorPrimaryDark">#124A80</item>
+        <item name="colorAccent">#185FA5</item>
+        <item name="android:windowBackground">#F6F5F1</item>
+        <item name="android:statusBarColor">#F6F5F1</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

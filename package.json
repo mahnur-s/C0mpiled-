@@ -1,0 +1,9 @@
+{
+  "name": "haru",
+  "version": "1.0.0",
+  "description": "Haru: AI safety net for older adults living alone. Notices unusual inactivity, calls them, alerts family.",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
+  "license": "MIT"
+}

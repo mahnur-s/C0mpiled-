@@ -1,9 +1,14 @@
 {
   "name": "haru",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Haru: AI safety net for older adults living alone. Notices unusual inactivity, calls them, alerts family.",
   "main": "server.js",
-  "scripts": { "start": "node server.js" },
-  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js",
+    "demo": "node -e \"process.env.DEMO_MODE='1'; require('./server')\"",
+    "test": "node --test \"test/*.test.js\"",
+    "create-admin": "node scripts/create-admin.js"
+  },
+  "engines": { "node": ">=22.5" },
   "license": "MIT"
 }

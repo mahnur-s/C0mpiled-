@@ -4,6 +4,7 @@ const { openDb } = require('./db');
 const { createApp } = require('./app');
 const { createVapi, createFakeVapi } = require('./providers/vapi');
 const { createTelegram } = require('./providers/telegram');
+const { randomToken, hashPassword } = require('./auth');
 
 loadDotEnv();
 const config = loadConfig();
@@ -23,7 +24,15 @@ app.server.listen(config.port, async () => {
   console.log(`  Database:  ${config.dbPath}`);
   for (const w of configWarnings(config)) console.warn(`  ! ${w}`);
   if (!db.prepare("SELECT 1 FROM users WHERE role = 'admin'").get()) {
-    console.warn('  ! No admin account yet. Create one with: node scripts/create-admin.js you@example.com "Your Name"');
+    if (config.demoMode) {
+      // Local demo convenience only: a ready-to-use admin, password shown once in this console.
+      const password = randomToken(9);
+      db.prepare("INSERT INTO users (email, name, password_hash, role, created_at) VALUES (?, 'Demo Admin', ?, 'admin', ?)")
+        .run('admin@haru.local', hashPassword(password), Date.now());
+      console.log(`\n  Demo admin created. Log in with  admin@haru.local  /  ${password}\n`);
+    } else {
+      console.warn('  ! No admin account yet. Create one with: node scripts/create-admin.js you@example.com "Your Name"');
+    }
   }
   await app.startBackground();
 });

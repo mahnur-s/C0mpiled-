@@ -1,0 +1,11 @@
+.git
+.github
+.env
+data
+android
+test
+docs
+*.db*
+node_modules
+start.bat
+start.command

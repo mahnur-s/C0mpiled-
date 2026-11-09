@@ -31,7 +31,8 @@ jobs:
         shell: bash
         # Kotlin/AAPT errors as annotations, readable on the run page without downloading logs.
         run: |
-          grep -E '^e: |error:|ERROR:|What went wrong' -A3 build.log | head -60 | while IFS= read -r line; do echo "::error::${line//%/%25}"; done
+          [ -f build.log ] || { echo "No build log: the failure happened before the build started."; exit 0; }
+          grep -E '^e: |error:|ERROR:|What went wrong' -A3 build.log | head -60 | while IFS= read -r line; do echo "::error::${line//%/%25}"; done || true
       - uses: actions/upload-artifact@v4
         with:
           name: haru-debug-apk

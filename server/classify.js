@@ -13,7 +13,8 @@ function keywordClassify(userText) {
 const SYSTEM_PROMPT =
   'You classify a wellness check-in call with an older adult living alone. Return JSON: ' +
   '{"status":"ok|concern|emergency|no_answer","reason":"short","location_in_home":"string or null",' +
-  '"summary_for_family":"1-2 sentences"}. emergency = fall, cannot get up, chest pain, trouble breathing, ' +
+  '"summary_for_family":"1-2 sentences","took_medication":true|false|null}. took_medication = true only if they ' +
+  'clearly said they have taken their medicine for now, false if they said they have not, null if it did not come up.emergency = fall, cannot get up, chest pain, trouble breathing, ' +
   'bleeding, confusion, asks for help. concern = dizziness, pain, missed meals or medicine, low mood. ' +
   'no_answer = the senior never spoke. When unsure between levels, choose the more serious one.';
 

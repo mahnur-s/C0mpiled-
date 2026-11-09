@@ -31,7 +31,9 @@ test('idle past threshold calls; "I\'m fine" logs a check-in and resets the cloc
   assert.equal(h.senior(seniorId).phase, 'calling');
   assert.equal(h.vapi.started.length, 1);
   assert.equal(h.vapi.started[0].phone, '+14155550100');
-  assert.deepEqual(h.vapi.started[0].variables, { name: 'Margaret', family: 'Jane' });
+  assert.deepEqual(h.vapi.started[0].variables, {
+    name: 'Margaret', family: 'Jane', why: 'your phone has been quiet for a while, so I am checking in', meds: '',
+  });
 
   await answer(h, seniorId, "I'm fine, just napping");
   const s = h.senior(seniorId);

@@ -88,7 +88,7 @@ function serveStatic(root, url, res) {
       'Cache-Control': 'no-cache',
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'same-origin',
-      ...(path.extname(file) === '.html' ? { 'Content-Security-Policy': "default-src 'self'; frame-ancestors 'none'" } : {}),
+      ...(path.extname(file) === '.html' ? { 'Content-Security-Policy': "default-src 'self'; frame-src https://www.openstreetmap.org; frame-ancestors 'none'" } : {}),
     });
     res.end(data);
   });

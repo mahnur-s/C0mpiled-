@@ -5,8 +5,15 @@
 const { tx } = require('./db');
 const { esc } = require('./providers/telegram');
 const { inQuietHours, fmtTime, fmtDateTime, fmtDuration } = require('./time');
+const { purgeHealth } = require('./health');
+const meds = require('./meds');
+const { locationStatus, mapLink, purgeLocations } = require('./location');
+const { EVENT_KINDS, isUrgent, purgeSensors } = require('./sensors');
 
+// Also: urgent room-sensor events (possible fall, call for help) trigger an immediate check-in call, and
+// medication doses still not taken after the grace period are reported to family once.
 const MIN = 60000;
+const TOOK_MEDS = /\b(took|taken|had) (my |the |all my )?(pills?|medicines?|medications?|tablets?|meds)\b/i;
 const DEVICE_SILENT_MS = 2 * 60 * MIN; // the app syncs every 15 min, so 2h of silence means something is wrong
 const ACTIVE_VAPI_STATUSES = ['scheduled', 'queued', 'ringing', 'in-progress', 'forwarding'];
 
@@ -37,7 +44,7 @@ function createMonitor({ db, config, now, vapi, telegram, classify }) {
     q('SELECT * FROM incidents WHERE senior_id = ? AND resolved_at IS NULL ORDER BY id DESC LIMIT 1').get(seniorId);
 
   function latestDevice(seniorId) {
-    return q('SELECT * FROM devices WHERE senior_id = ? AND revoked_at IS NULL ORDER BY last_seen DESC LIMIT 1').get(seniorId);
+    return q("SELECT * FROM devices WHERE senior_id = ? AND revoked_at IS NULL AND kind = 'phone' ORDER BY last_seen DESC LIMIT 1").get(seniorId);
   }
 
   // One line about the phone itself, so families can tell "not answering" from "phone is dead".
@@ -54,13 +61,28 @@ function createMonitor({ db, config, now, vapi, telegram, classify }) {
   }
 
   const lastActiveLine = (s) => (s.last_active
-    ? `Last phone activity: ${fmtDateTime(s.last_active, s.timezone)}`
+    ? `Last sign of activity (phone or room sensor): ${fmtDateTime(s.last_active, s.timezone)}`
     : 'No phone activity recorded yet.');
 
   function contactLines(s) {
     const lines = [`Call ${esc(s.name)}: ${esc(s.phone)}`];
     if (s.address) lines.push(`Home: <a href="https://maps.google.com/?q=${encodeURIComponent(s.address)}">${esc(s.address)}</a>`);
+    const loc = locationStatus(db, s, now());
+    if (loc && now() - loc.at < 6 * 3600000) {
+      const where = loc.atHome ? 'at home' : loc.distanceM != null ? `${miles(loc.distanceM)} from home` : '';
+      lines.push(`Phone last located ${where ? `${where} ` : ''}at ${esc(fmtTime(loc.at, s.timezone))}: <a href="${mapLink(loc.lat, loc.lng)}">open map</a>`);
+    }
     return lines;
+  }
+
+  const miles = (m) => (m < 160 ? `${Math.round(m * 3.281)} ft` : `${(m / 1609).toFixed(m < 16000 ? 1 : 0)} mi`);
+
+  // Plain Telegram message to every linked family member (not an incident, no buttons).
+  async function tellFamily(s, html) {
+    if (!telegram.configured) return 0;
+    let n = 0;
+    for (const chat of new Set(familyOf(s.id).map((u) => u.telegram_chat_id).filter(Boolean))) if (await telegram.send(chat, html)) n++;
+    return n;
   }
 
   const htmlToText = (h) => h.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
@@ -129,6 +151,7 @@ function createMonitor({ db, config, now, vapi, telegram, classify }) {
         .run(s.id, attempt, reason, requestedBy && requestedBy.id, t).lastInsertRowid;
     });
     if (reason === 'manual') logEvent(s.id, 'ok', `${requestedBy.name} asked Haru to call ${s.name}.`);
+    else if (reason === 'sensor') logEvent(s.id, 'bad', `Haru is calling ${s.name} right away because of the room sensor.`);
     else {
       const idle = fmtDuration(t - Math.max(s.last_active || 0, s.watch_from));
       logEvent(s.id, 'warn', attempt === 1
@@ -140,7 +163,14 @@ function createMonitor({ db, config, now, vapi, telegram, classify }) {
       if (!vapi.configured) throw new Error('phone calls are not configured on the server');
       const { id } = await vapi.startCall({
         phone: s.phone,
-        variables: { name: s.name, family: family.length ? family[0].name : 'your family' },
+        variables: {
+          name: s.name,
+          family: family.length ? family[0].name : 'your family',
+          why: reason === 'sensor' ? 'I picked up a loud noise at home and wanted to make sure you are alright'
+            : reason === 'manual' ? `${requestedBy.name} asked me to check in on you`
+              : 'your phone has been quiet for a while, so I am checking in',
+          meds: meds.outstandingPhrase(db, s, t),
+        },
       });
       q('UPDATE calls SET vapi_call_id = ? WHERE id = ?').run(id, callId);
     } catch (e) {
@@ -164,12 +194,26 @@ function createMonitor({ db, config, now, vapi, telegram, classify }) {
     q('UPDATE calls SET outcome = ?, summary = ? WHERE id = ?').run(result.status, summary, callId);
     const s = getSenior(call.senior_id);
     if (!s) return result;
+    if (result.status !== 'no_answer' && (result.took_medication === true || TOOK_MEDS.test(userText))) {
+      const n = meds.markOutstandingTaken(db, s, t, 'call');
+      if (n) logEvent(s.id, 'ok', `${s.name} said on the call that they took their medicine (${n} dose${n === 1 ? '' : 's'} marked taken).`);
+    }
 
     if (result.status === 'no_answer') {
       const why = failed ? ' (the call could not be completed)' : '';
       if (call.reason === 'manual') {
         setPhase(s.id, 'watching');
         logEvent(s.id, 'warn', `${s.name} didn't answer the requested call${why}.`);
+      } else if (call.reason === 'sensor') {
+        // A possible fall followed by silence: don't wait for a retry.
+        setPhase(s.id, 'watching', { watch_from: t });
+        logEvent(s.id, 'bad', `${s.name} didn't answer after the room sensor alert${why}. Alerting family.`);
+        const urgentKinds = Object.keys(EVENT_KINDS).filter((k) => EVENT_KINDS[k].urgent);
+        const ev = q(`SELECT * FROM sensor_events WHERE senior_id = ? AND at <= ? AND kind IN (${urgentKinds.map(() => '?').join(',')}) ORDER BY at DESC, id DESC LIMIT 1`)
+          .get(s.id, call.started_at, ...urgentKinds);
+        const what = ev ? EVENT_KINDS[ev.kind].label : 'a loud noise';
+        await openIncident(s, 'emergency', `The room sensor heard ${what} and ${s.name} isn't answering.`,
+          alertHtml(s, 'emergency', { summary: `The room sensor heard ${what}${ev ? ` at ${fmtTime(ev.at, s.timezone)}` : ''} and ${s.name} didn't answer Haru's call.` }));
       } else if (call.attempt < 2) {
         const retryAt = t + T.retryAfterMin * MIN;
         setPhase(s.id, 'retry', { retry_at: retryAt });
@@ -229,6 +273,34 @@ function createMonitor({ db, config, now, vapi, telegram, classify }) {
     }
   }
 
+  // ---------- room sensor ----------
+  async function sensorEvent(seniorId, e) {
+    const s = getSenior(seniorId);
+    if (!s) return;
+    const what = EVENT_KINDS[e.kind].label;
+    const when = fmtTime(e.at, s.timezone);
+    if (!isUrgent(e)) return logEvent(s.id, 'warn', `Room sensor heard ${what} at ${when}.`);
+    const paused = s.paused_until && s.paused_until > now();
+    logEvent(s.id, 'bad', `Room sensor heard ${what} at ${when}${paused ? ' (monitoring is paused, so no call)' : ''}.`);
+    if (paused) return;
+    if (e.kind === 'smoke_alarm') {
+      await openIncident(s, 'emergency', `A smoke or CO alarm is sounding at ${s.name}'s home.`,
+        alertHtml(s, 'emergency', { summary: `The room sensor hears a smoke or CO alarm at ${s.name}'s home (since ${when}).` }));
+    } else {
+      await tellFamily(s, `🔔 <b>Haru's room sensor heard ${esc(what)} at ${esc(when)}.</b>\nHaru is calling ${esc(s.name)} now and will tell you how it goes.`);
+    }
+    if (s.phase === 'watching' || s.phase === 'quiet') await placeCall(s, { attempt: 1, reason: 'sensor' });
+  }
+
+  // ---------- medication ----------
+  async function checkMeds(s, t) {
+    const missed = meds.newlyMissed(db, s, t);
+    if (!missed.length) return;
+    const list = missed.map((d) => `${d.name}${d.dose ? ` ${d.dose}` : ''} (${fmtTime(d.dueAt, s.timezone)})`).join(', ');
+    logEvent(s.id, 'warn', `${s.name} hasn't marked this medicine as taken: ${list}.`);
+    await tellFamily(s, `💊 <b>${esc(s.name)} hasn't marked a dose as taken</b>\n${esc(list)}\nMaybe give them a quick call. You can mark it taken on the dashboard.`);
+  }
+
   // ---------- incidents ----------
   async function acknowledge(incidentId, user) {
     const inc = q('SELECT * FROM incidents WHERE id = ?').get(incidentId);
@@ -265,10 +337,15 @@ function createMonitor({ db, config, now, vapi, telegram, classify }) {
   // ---------- the loop ----------
   function noteDeviceSilence(s, t) {
     const d = latestDevice(s.id);
-    if (!d || !d.last_seen || t - d.last_seen < DEVICE_SILENT_MS) return;
-    if (d.silence_noted_at && d.silence_noted_at >= d.last_seen) return;
-    q('UPDATE devices SET silence_noted_at = ? WHERE id = ?').run(t, d.id);
-    logEvent(s.id, 'warn', deviceNote(s, t));
+    if (d && d.last_seen && t - d.last_seen >= DEVICE_SILENT_MS && !(d.silence_noted_at && d.silence_noted_at >= d.last_seen)) {
+      q('UPDATE devices SET silence_noted_at = ? WHERE id = ?').run(t, d.id);
+      logEvent(s.id, 'warn', deviceNote(s, t));
+    }
+    for (const r of q("SELECT * FROM devices WHERE senior_id = ? AND revoked_at IS NULL AND kind = 'room'").all(s.id)) {
+      if (!r.last_seen || t - r.last_seen < DEVICE_SILENT_MS || (r.silence_noted_at && r.silence_noted_at >= r.last_seen)) continue;
+      q('UPDATE devices SET silence_noted_at = ? WHERE id = ?').run(t, r.id);
+      logEvent(s.id, 'warn', `The room sensor (${r.model || 'tablet'}) hasn't reported since ${fmtDateTime(r.last_seen, s.timezone)}. Check it's plugged in and on Wi-Fi.`);
+    }
   }
 
   async function tickSenior(s) {
@@ -281,6 +358,7 @@ function createMonitor({ db, config, now, vapi, telegram, classify }) {
       logEvent(s.id, 'ok', 'Monitoring resumed.');
       return;
     }
+    await checkMeds(s, t);
     if (s.phase === 'watching' || s.phase === 'quiet') {
       const idle = t - Math.max(s.last_active || 0, s.watch_from);
       if (idle < s.inactivity_minutes * MIN) return;
@@ -319,6 +397,9 @@ function createMonitor({ db, config, now, vapi, telegram, classify }) {
     q('DELETE FROM sessions WHERE expires_at < ?').run(t);
     q('DELETE FROM pairing_codes WHERE expires_at < ?').run(t);
     q('DELETE FROM invites WHERE expires_at < ? AND used_at IS NULL').run(t - 30 * 86400000);
+    purgeHealth(db, t);
+    purgeLocations(db, t);
+    purgeSensors(db, t);
   }
 
   async function tick() {
@@ -369,7 +450,7 @@ function createMonitor({ db, config, now, vapi, telegram, classify }) {
   }
 
   return {
-    tick, start, stop, logEvent, recordActivity, placeCall, finishCall, onVapiReport, callNow,
+    tick, start, stop, logEvent, recordActivity, sensorEvent, tellFamily, placeCall, finishCall, onVapiReport, callNow,
     acknowledge, resolve, statusOf, deviceNote, familyOf, lastTickAt: () => lastTickAt,
   };
 }

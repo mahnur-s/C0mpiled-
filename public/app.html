@@ -3,57 +3,151 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dashboard · Haru</title>
+<title>Haru</title>
 <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
 <main class="page">
-  <div id="tg-note" class="note hidden">
-    <span>Connect Telegram so Haru can alert you if something is wrong.</span>
-    <button class="primary" id="tg-connect">Connect Telegram</button>
+  <div id="banners"></div>
+
+  <div id="empty" class="card empty hidden">
+    <h2 id="empty-h"></h2>
+    <p id="empty-p"></p>
+    <a class="btn primary hidden" id="empty-add" href="/setup.html">Add a loved one</a>
   </div>
-  <div id="tabs" class="tabs"></div>
-  <div id="empty" class="empty hidden"></div>
 
-  <div id="dash" class="hidden">
-    <div id="status" class="status ok">
-      <p class="t" id="st-t"></p>
-      <p class="h" id="st-h"></p>
-      <p class="s" id="st-s"></p>
-      <p class="acked hidden" id="st-ack"></p>
-    </div>
-    <div class="actions">
-      <button class="primary hidden" id="b-ack">I'm on it</button>
-      <button class="hidden" id="b-resolve">Mark resolved</button>
-      <button id="b-call">Ask Haru to call now</button>
-      <a class="btn" id="b-phone">Call them yourself</a>
-      <span id="pause-box">
-        <select id="pause-len" aria-label="Pause length">
-          <option value="1">1 day</option><option value="3">3 days</option>
-          <option value="7">1 week</option><option value="14">2 weeks</option>
-        </select>
-        <button id="b-pause">Pause monitoring</button>
-      </span>
-      <button class="hidden" id="b-resume">Resume monitoring</button>
-      <span class="error" id="act-err"></span>
-    </div>
-
-    <div class="metrics">
-      <div class="metric"><p class="k">Last phone activity</p><p class="v" id="m-last"></p><p class="n" id="m-last-n"></p></div>
-      <div class="metric"><p class="k">Last check-in call</p><p class="v" id="m-check"></p><p class="n" id="m-check-n"></p></div>
-      <div class="metric"><p class="k">Their phone</p><p class="v" id="m-dev"></p><p class="n" id="m-dev-n"></p></div>
-    </div>
-
-    <div class="grid2">
-      <div class="card"><h3>What Haru has done</h3><div id="feed"></div></div>
+  <div id="person" class="hidden">
+    <div class="page-head">
       <div>
-        <div class="card"><h3>Check-in calls</h3><div id="calls"></div></div>
-        <div class="card"><h3>Family</h3><div id="family"></div>
-          <p class="small muted" id="settings"></p>
+        <h1 id="name"></h1>
+        <p class="sub" id="sub"></p>
+      </div>
+      <a class="btn" id="settings-link">Settings</a>
+    </div>
+
+    <div id="hero" class="hero ok">
+      <div class="icon" id="hero-icon">✓</div>
+      <div>
+        <p class="title" id="hero-title"></p>
+        <p class="text" id="hero-text"></p>
+        <p class="meta" id="hero-meta"></p>
+        <div class="actions">
+          <button class="primary hidden" id="b-ack">I'm on it</button>
+          <button class="hidden" id="b-resolve">They're safe, mark resolved</button>
+          <a class="btn" id="b-phone">Call them</a>
+          <button id="b-call">Ask Haru to check in now</button>
+          <button class="hidden" id="b-resume">Resume monitoring</button>
         </div>
+        <p class="error" id="act-err"></p>
       </div>
     </div>
-    <p class="small muted">Haru is not an emergency service. If you think someone is in danger, call 911.</p>
+
+    <div class="tiles" id="tiles"></div>
+
+    <section class="block">
+      <div class="block-head"><h2>Worth a look</h2></div>
+      <div class="flags" id="flags"></div>
+    </section>
+
+    <section class="block">
+      <div class="block-head"><h2>Today</h2></div>
+      <div class="grid2">
+        <div class="card" id="meds-card">
+          <div class="t"><h3>Medicine</h3><a class="small" id="meds-edit">Edit medicines</a></div>
+          <div id="meds-today"></div>
+        </div>
+        <div class="card" id="where-card">
+          <div class="t"><h3>Where they are</h3><span class="muted small" id="where-when"></span></div>
+          <div id="where"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="block-head"><h2>Daily patterns</h2><span class="muted small" id="tz-note"></span></div>
+      <p class="muted small pat-lead">Haru learns what a normal day looks like for them and points out changes: getting up later, restless nights, staying in, missed doses.</p>
+      <div class="card chart-card hidden" id="room-card">
+        <div class="t"><h3>Moving about at home</h3><span class="muted small">room sensor · last 7 days</span></div>
+        <p class="take" id="take-room"></p>
+        <div class="chart" id="c-room"></div>
+      </div>
+      <div class="card chart-card mt-if" id="activity-card">
+        <div class="t"><h3>When the phone was used</h3><span class="muted small">last 7 days</span></div>
+        <p class="take" id="take-activity"></p>
+        <div class="chart" id="c-activity"></div>
+      </div>
+      <div class="grid2 mt">
+        <div class="card chart-card">
+          <div class="t"><h3>Medicine taken</h3><span class="muted small">doses per day</span></div>
+          <p class="take" id="take-meds"></p>
+          <div class="chart" id="c-meds"></div>
+        </div>
+        <div class="card chart-card">
+          <div class="t"><h3>Time out of the house</h3><span class="muted small">hours per day</span></div>
+          <p class="take" id="take-away"></p>
+          <div class="chart" id="c-away"></div>
+        </div>
+        <div class="card chart-card">
+          <div class="t"><h3>Steps</h3><span class="muted small">per day</span></div>
+          <p class="take" id="take-steps"></p>
+          <div class="chart" id="c-steps"></div>
+          <div id="n-steps"></div>
+        </div>
+        <div class="card chart-card">
+          <div class="t"><h3>Resting heart rate</h3><span class="muted small">beats per minute</span></div>
+          <p class="take" id="take-hr"></p>
+          <div class="chart" id="c-hr"></div>
+          <div id="n-hr"></div>
+        </div>
+        <div class="card chart-card">
+          <div class="t"><h3>Sleep</h3><span class="muted small">hours per night</span></div>
+          <p class="take" id="take-sleep"></p>
+          <div class="chart" id="c-sleep"></div>
+          <div id="n-sleep"></div>
+        </div>
+        <div class="card">
+          <div class="t"><h3>Check-in calls</h3></div>
+          <p class="take muted small">Haru calls when the day has been quiet for too long, when the room sensor hears something, or when you ask.</p>
+          <div id="calls"></div>
+        </div>
+        <div class="card hidden" id="sounds-card">
+          <div class="t"><h3>Room sensor</h3><span class="muted small">last 7 days</span></div>
+          <p class="take muted small">Sounds and movements worth knowing about. Only labels are sent; no video or audio ever leaves the device.</p>
+          <div id="sounds"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="block-head"><h2>What Haru did</h2><button class="linkish hidden" id="more">Show everything</button></div>
+      <div class="card" id="feed"></div>
+    </section>
+
+    <section class="demo-panel hidden" id="demo">
+      <h3>Demo controls</h3>
+      <p class="small muted">Act out what happens in real life. Families never see this panel.</p>
+      <div class="actions" id="demo-idle">
+        <button data-demo="ff">⏩ Skip ahead 6 hours (phone not used)</button>
+        <button data-demo="use">📱 Uses the phone</button>
+        <button data-demo="ok">👍 Presses "I'm OK"</button>
+        <button data-demo="meds">💊 Takes the medicine that's due</button>
+        <button data-demo="out">🚶 Walks to the shops</button>
+        <button data-demo="home">🏠 Comes home</button>
+        <button data-demo="fall">🔊 Room sensor hears a fall</button>
+        <button data-demo="reset">↺ Reset demo</button>
+      </div>
+      <div id="demo-call" class="hidden">
+        <p class="small"><b>Haru is calling now.</b> <span id="demo-q"></span></p>
+        <div class="actions">
+          <button data-say="Oh, I'm fine dear. I was taking a nap. I've eaten and taken my medicine.">"I'm fine"</button>
+          <button data-say="I'm a bit dizzy today and I forgot my pills this morning.">"I'm a bit dizzy"</button>
+          <button data-say="I fell in the bathroom and I can't get up. My hip hurts. Please help me.">"I fell"</button>
+          <button data-say="">Doesn't answer</button>
+        </div>
+        <div class="actions"><input id="say" placeholder="Or type an answer and press Enter"></div>
+      </div>
+      <p class="error" id="demo-err"></p>
+    </section>
   </div>
 </main>
 <script type="module" src="/js/app.js"></script>

@@ -48,4 +48,25 @@ function fmtDuration(ms) {
   return h < 48 ? `${h} hour${h === 1 ? '' : 's'}` : `${Math.floor(h / 24)} days`;
 }
 
-module.exports = { isValidTimezone, HHMM, inQuietHours, fmtTime, fmtDateTime, fmtDuration };
+// Offset (ms) of timezone tz from UTC at instant ms.
+function tzOffset(ms, tz) {
+  const p = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
+  }).formatToParts(new Date(ms));
+  const g = (t) => Number(p.find((x) => x.type === t).value);
+  return Date.UTC(g('year'), g('month') - 1, g('day'), g('hour'), g('minute'), g('second')) - Math.floor(ms / 1000) * 1000;
+}
+
+// 'YYYY-MM-DD' + 'HH:MM' in tz -> epoch ms. Two passes settle daylight-saving changes.
+function localToEpoch(day, hhmm, tz) {
+  const [y, mo, d] = day.split('-').map(Number);
+  const [h, mi] = hhmm.split(':').map(Number);
+  const wall = Date.UTC(y, mo - 1, d, h, mi);
+  let t = wall - tzOffset(wall, tz);
+  t = wall - tzOffset(t, tz);
+  return t;
+}
+
+const dayKey = (ms, tz) => new Date(ms).toLocaleDateString('en-CA', { timeZone: tz }); // YYYY-MM-DD
+
+module.exports = { isValidTimezone, HHMM, toMinutes, localMinutes, inQuietHours, fmtTime, fmtDateTime, fmtDuration, localToEpoch, dayKey };

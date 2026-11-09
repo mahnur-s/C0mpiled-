@@ -96,14 +96,43 @@ The app is built by GitHub Actions, so you don't need Android Studio.
 2. Push the repo (or run the **Android app** workflow by hand from the Actions tab).
 3. Open the finished run and download the **haru-debug-apk** artifact (a zip containing `app-debug.apk`).
 4. Copy the APK to the senior's phone and open it. Android will ask to allow installs from that source; allow it.
-5. In Haru on the phone: enter the 6-digit code from **Admin > Phone app > Get a pairing code**.
-6. Complete both yellow steps the app shows:
+5. In Haru on the phone: choose **This is the phone of the person Haru looks after**, then enter the 6-digit
+   code from **Admin > Phone app > Get a pairing code**.
+6. Complete the yellow steps the app shows:
    - **Usage access:** find Haru in the list and turn it on.
    - **Run in background:** allow. On Samsung phones also open Settings > Apps > Haru > Battery > **Unrestricted**;
      on Xiaomi, enable **Autostart**. See https://dontkillmyapp.com for other brands.
+   - **Medicine reminders:** tap **Allow** so Haru can show "Time for your …" notifications with
+     **I took it** / **Skip** buttons (Android 13+ asks; on older phones it opens notification settings only if
+     they were turned off).
+7. Optional: **Share location.** Tap **Share location** and allow it (precise or approximate both work). On
+   Android 10 and newer a second step follows: tap **Continue** and choose **Allow all the time**, because Haru
+   checks in every 15 minutes with the app closed. The senior can tap **No thanks**; everything else still works,
+   the family just won't see whether they're at home.
 
 **Check:** on the dashboard, "Their phone" shows the battery level, and "Last phone activity" updates within
 about 15 minutes of using the phone. Press **I'm OK** in the app to see an immediate update.
+
+### Optional: a room sensor
+
+A spare Android phone or tablet (Android 8+) can stay at home as a room sensor. It watches the living room with
+its camera and microphone, but **all video and audio are analysed on the device and discarded immediately**: only
+numbers (movement and sound levels per 15 minutes) and alerts (possible fall, smoke alarm, loud bang) are sent.
+
+1. Install the same APK on the spare device (steps 3–4 above) and get a new pairing code for the same senior.
+2. In Haru: choose **This is a room sensor (a spare phone or tablet that stays at home)**, then enter the code.
+3. Complete the steps the app shows: **allow the camera and microphone**, **let Haru run in the background**
+   (plus the Samsung/Xiaomi settings above), and **keep it plugged in**.
+4. Prop it up facing the main living area, back camera towards the room, on its charger.
+
+The screen then says **Watching the living room** with live movement and sound bars, and a quiet
+"Haru room sensor is on. Nothing is recorded." notification stays in the status bar. **Pause for 1 hour** turns
+the camera and microphone off and back on by themselves. After the device restarts, Android 15+ (and sometimes
+older versions) won't let Haru turn the camera back on by itself: open Haru once, or tap the
+"Haru room sensor stopped" notification.
+
+Falls and smoke alarms are detected with simple on-device rules, not a trained model: expect some false alarms
+and misses, and don't rely on it instead of a real smoke alarm or a fall-alert pendant.
 
 ## 6. Onboarding a family
 

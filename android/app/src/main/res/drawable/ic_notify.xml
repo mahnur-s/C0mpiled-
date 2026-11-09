@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status-bar icon for reminders: just the white heart (Android draws notification icons as a silhouette). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,92 L18,56 C4,42 12,16 34,16 C44,16 50,22 54,30 C58,22 64,16 74,16 C96,16 104,42 90,56 Z" />
+</vector>

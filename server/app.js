@@ -13,7 +13,7 @@ function createApp({ config, db, vapi, telegram, now = Date.now, fetchImpl = fet
   const classify = (call) => classifyCall(call, config.openai, fetchImpl);
   const monitor = createMonitor({ db, config, now, vapi, telegram, classify });
   const router = new Router();
-  const app = { config, db, now, vapi, telegram, monitor, router };
+  const app = { config, db, now, vapi, telegram, monitor, router, fetchImpl };
 
   require('./routes/auth')(app);
   require('./routes/family')(app);

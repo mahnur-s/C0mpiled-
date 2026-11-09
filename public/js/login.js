@@ -13,3 +13,19 @@ $('f').addEventListener('submit', async (e) => {
     flash($('err'), err.message);
   }
 });
+
+// Demo servers only: one click into a sample family with two weeks of history.
+fetch('/api/config').then((r) => r.json()).then((c) => {
+  if (!c.demoMode) return;
+  $('demo').classList.remove('hidden');
+  $('b-demo').addEventListener('click', async () => {
+    $('b-demo').disabled = true;
+    try {
+      const { seniorId } = await api('POST', '/api/demo/start');
+      location.href = `/app.html?senior=${seniorId}`;
+    } catch (err) {
+      flash($('demo-err'), err.message);
+      $('b-demo').disabled = false;
+    }
+  });
+}).catch(() => {});

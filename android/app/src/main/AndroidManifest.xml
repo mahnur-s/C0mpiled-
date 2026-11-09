@@ -9,6 +9,24 @@
         tools:ignore="ProtectedPermissions" />
     <!-- Sideloaded pilot app: asks to be exempt from battery optimisation so syncs are not delayed for hours. -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- Medicine reminders (asked at runtime on Android 13+). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Optional: lets family see whether the senior is home. Background access because the 15-minute sync runs with the app closed. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+    <!-- Room sensor mode only (a spare device left at home). Camera and microphone are analysed on the
+         device and discarded immediately: no pictures or sound are stored or sent. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <application
         android:allowBackup="false"
@@ -24,5 +42,23 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- "I took it" / "Skip" buttons on medicine reminders; only our own notifications send these. -->
+        <receiver
+            android:name=".DoseActionReceiver"
+            android:exported="false" />
+        <!-- Room sensor: measures movement and sound level on the device, nothing is recorded. -->
+        <service
+            android:name=".RoomSensorService"
+            android:exported="false"
+            android:foregroundServiceType="camera|microphone" />
+        <!-- Room sensor mode: switch the sensor back on after a restart or an app update. -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

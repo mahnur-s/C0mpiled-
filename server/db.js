@@ -116,6 +116,104 @@ const MIGRATIONS = [
   );
   CREATE INDEX incidents_open ON incidents (senior_id, resolved_at);
   `,
+  // 2: activity patterns (15-minute slots with phone use) and daily health from Health Connect.
+  `
+  CREATE TABLE activity_slots (
+    senior_id INTEGER NOT NULL REFERENCES seniors(id) ON DELETE CASCADE,
+    slot INTEGER NOT NULL,
+    PRIMARY KEY (senior_id, slot)
+  ) WITHOUT ROWID;
+  CREATE TABLE health_daily (
+    senior_id INTEGER NOT NULL REFERENCES seniors(id) ON DELETE CASCADE,
+    day TEXT NOT NULL,
+    steps INTEGER,
+    resting_hr INTEGER,
+    avg_hr INTEGER,
+    min_hr INTEGER,
+    max_hr INTEGER,
+    sleep_minutes INTEGER,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (senior_id, day)
+  ) WITHOUT ROWID;
+  ALTER TABLE seniors ADD COLUMN latest_hr INTEGER;
+  ALTER TABLE seniors ADD COLUMN latest_hr_at INTEGER;
+  ALTER TABLE devices ADD COLUMN health_access INTEGER;
+  `,
+  // 3: caregiver features. Medication schedules and doses, phone location, and a room sensor
+  // (spare phone/tablet: camera motion + microphone sound, analysed on the device; only numbers arrive here).
+  `
+  CREATE TABLE medications (
+    id INTEGER PRIMARY KEY,
+    senior_id INTEGER NOT NULL REFERENCES seniors(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    dose TEXT NOT NULL DEFAULT '',
+    times TEXT NOT NULL,
+    instructions TEXT NOT NULL DEFAULT '',
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER NOT NULL,
+    stopped_at INTEGER
+  );
+  CREATE TABLE med_doses (
+    medication_id INTEGER NOT NULL REFERENCES medications(id) ON DELETE CASCADE,
+    due_at INTEGER NOT NULL,
+    senior_id INTEGER NOT NULL REFERENCES seniors(id) ON DELETE CASCADE,
+    status TEXT NOT NULL CHECK (status IN ('taken', 'skipped', 'missed')),
+    at INTEGER NOT NULL,
+    source TEXT NOT NULL,
+    by_user INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    PRIMARY KEY (medication_id, due_at)
+  ) WITHOUT ROWID;
+  CREATE INDEX med_doses_by_senior ON med_doses (senior_id, due_at);
+  CREATE TABLE locations (
+    senior_id INTEGER NOT NULL REFERENCES seniors(id) ON DELETE CASCADE,
+    at INTEGER NOT NULL,
+    lat REAL NOT NULL,
+    lng REAL NOT NULL,
+    accuracy REAL,
+    PRIMARY KEY (senior_id, at)
+  ) WITHOUT ROWID;
+  CREATE TABLE room_slots (
+    senior_id INTEGER NOT NULL REFERENCES seniors(id) ON DELETE CASCADE,
+    slot INTEGER NOT NULL,
+    motion_minutes INTEGER NOT NULL,
+    motion_peak INTEGER,
+    sound_avg INTEGER,
+    sound_peak INTEGER,
+    PRIMARY KEY (senior_id, slot)
+  ) WITHOUT ROWID;
+  CREATE TABLE sensor_events (
+    id INTEGER PRIMARY KEY,
+    senior_id INTEGER NOT NULL REFERENCES seniors(id) ON DELETE CASCADE,
+    at INTEGER NOT NULL,
+    kind TEXT NOT NULL,
+    confidence REAL,
+    UNIQUE (senior_id, kind, at)
+  );
+  ALTER TABLE seniors ADD COLUMN home_lat REAL;
+  ALTER TABLE seniors ADD COLUMN home_lng REAL;
+  ALTER TABLE seniors ADD COLUMN home_radius_m INTEGER NOT NULL DEFAULT 150;
+  ALTER TABLE seniors ADD COLUMN med_grace_minutes INTEGER NOT NULL DEFAULT 120;
+  ALTER TABLE devices ADD COLUMN kind TEXT NOT NULL DEFAULT 'phone';
+  ALTER TABLE devices ADD COLUMN location_access INTEGER;
+  CREATE TABLE calls_v3 (
+    id INTEGER PRIMARY KEY,
+    senior_id INTEGER NOT NULL REFERENCES seniors(id) ON DELETE CASCADE,
+    vapi_call_id TEXT UNIQUE,
+    attempt INTEGER NOT NULL,
+    reason TEXT NOT NULL CHECK (reason IN ('inactivity', 'manual', 'sensor')),
+    requested_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    started_at INTEGER NOT NULL,
+    ended_at INTEGER,
+    ended_reason TEXT,
+    transcript TEXT,
+    outcome TEXT,
+    summary TEXT
+  );
+  INSERT INTO calls_v3 SELECT * FROM calls;
+  DROP TABLE calls;
+  ALTER TABLE calls_v3 RENAME TO calls;
+  CREATE INDEX calls_by_senior ON calls (senior_id, started_at DESC);
+  `,
 ];
 
 function openDb(file) {

@@ -4,6 +4,7 @@ const { HttpError } = require('../http');
 const { requireAdmin } = require('../guards');
 const { randomToken, sha256 } = require('../auth');
 const { isValidTimezone, HHMM } = require('../time');
+const { geocode } = require('../location');
 
 const E164 = /^\+[1-9]\d{7,14}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -33,6 +34,13 @@ function seniorInput(b) {
 
 module.exports = (app) => {
   const { router, db, now, config, monitor } = app;
+  // Look the address up on OpenStreetMap in the background and use it as "home" for location.
+  const locateHome = (id, address) => {
+    if (!address) return;
+    geocode(address, app.fetchImpl).then((p) => {
+      if (p) db.prepare('UPDATE seniors SET home_lat = ?, home_lng = ? WHERE id = ? AND address = ?').run(p.lat, p.lng, id, address);
+    }).catch(() => {});
+  };
   const getSenior = (id) => {
     const s = db.prepare('SELECT * FROM seniors WHERE id = ?').get(Number(id));
     if (!s) throw new HttpError(404, 'Not found.');
@@ -49,6 +57,7 @@ module.exports = (app) => {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(v.name, v.phone, v.timezone, v.address, v.inactivity_minutes, v.quiet_start, v.quiet_end, t, t, t).lastInsertRowid;
     monitor.logEvent(id, 'ok', `${admin.name} set up Haru for ${v.name}.`);
+    locateHome(id, v.address);
     return { id };
   });
 
@@ -59,6 +68,7 @@ module.exports = (app) => {
     db.prepare(
       `UPDATE seniors SET name = ?, phone = ?, timezone = ?, address = ?, inactivity_minutes = ?, quiet_start = ?, quiet_end = ? WHERE id = ?`,
     ).run(v.name, v.phone, v.timezone, v.address, v.inactivity_minutes, v.quiet_start, v.quiet_end, s.id);
+    if (v.address !== s.address) locateHome(s.id, v.address);
   });
 
   router.add('DELETE', '/api/admin/seniors/:id', (ctx) => {
@@ -77,7 +87,7 @@ module.exports = (app) => {
       invites: db.prepare('SELECT email, name, relationship, expires_at FROM invites WHERE senior_id = ? AND used_at IS NULL AND expires_at > ?')
         .all(s.id, now()),
       devices: db.prepare(
-        'SELECT id, model, app_version, battery, usage_access, last_seen, created_at FROM devices WHERE senior_id = ? AND revoked_at IS NULL ORDER BY created_at DESC',
+        'SELECT id, kind, model, app_version, battery, usage_access, location_access, last_seen, created_at FROM devices WHERE senior_id = ? AND revoked_at IS NULL ORDER BY created_at DESC',
       ).all(s.id),
     };
   });

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin · Haru</title>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<main class="page">
+  <div class="actions">
+    <h2>People Haru looks after</h2>
+    <button class="primary" id="b-new">Add a person</button>
+  </div>
+  <div class="card"><table>
+    <thead><tr><th>Name</th><th>Status</th><th>Phone activity</th><th></th></tr></thead>
+    <tbody id="list"></tbody>
+  </table><p class="muted hidden" id="list-empty">No one yet. Add the first person.</p></div>
+
+  <div id="panel" class="hidden">
+    <div class="grid2">
+      <form class="card" id="f">
+        <h3 id="f-title">Add a person</h3>
+        <label for="name">Name (what Haru calls them)</label>
+        <input id="name" required maxlength="80" placeholder="Margaret">
+        <label for="phone">Phone number (US numbers start with +1)</label>
+        <input id="phone" required placeholder="+14155551234" inputmode="tel">
+        <label for="timezone">Timezone</label>
+        <select id="timezone"></select>
+        <label for="address">Home address (sent to family in emergencies)</label>
+        <input id="address" maxlength="200" placeholder="123 Main St, Springfield, IL">
+        <label for="hours">Call if no phone activity for (hours)</label>
+        <input id="hours" type="number" min="1" max="48" step="0.5" value="4">
+        <div class="row2">
+          <div><label for="qs">Quiet hours from</label><input id="qs" type="time" value="22:00"></div>
+          <div><label for="qe">until</label><input id="qe" type="time" value="07:00"></div>
+        </div>
+        <p class="small muted">During quiet hours Haru waits instead of calling. Set both to the same time to allow calls at any hour.</p>
+        <label class="check" id="consent-row"><input type="checkbox" id="consent">
+          <span>They agreed to have their phone activity monitored and to receive automated check-in calls from Haru.</span></label>
+        <div class="form-actions">
+          <button class="primary" type="submit" id="f-save">Save</button>
+          <button type="button" class="danger hidden" id="b-del">Delete</button>
+        </div>
+        <p class="error" id="f-err"></p>
+      </form>
+
+      <div id="extras" class="hidden">
+        <div class="card">
+          <h3>Phone app</h3>
+          <div id="devices"></div>
+          <p class="small muted">Install the Haru app on their Android phone, open it, and enter this code.</p>
+          <button id="b-pair">Get a pairing code</button>
+          <div id="pair-out" class="hidden">
+            <p class="code" id="pair-code"></p>
+            <p class="small muted" id="pair-exp"></p>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Family</h3>
+          <div id="family"></div>
+          <form id="inv">
+            <div class="row2">
+              <div><label for="i-name">Name</label><input id="i-name" required maxlength="80"></div>
+              <div><label for="i-rel">Relationship</label><input id="i-rel" maxlength="40" placeholder="daughter"></div>
+            </div>
+            <label for="i-email">Email</label>
+            <input id="i-email" type="email" required>
+            <div class="form-actions"><button type="submit">Create invite link</button></div>
+            <p class="error" id="i-err"></p>
+          </form>
+          <div id="inv-out" class="hidden">
+            <p class="small">Send this link to them (it works once, for 7 days):</p>
+            <div id="inv-link"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<script type="module" src="/js/admin.js"></script>
+</body>
+</html>

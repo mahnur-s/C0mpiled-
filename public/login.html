@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Log in · Haru</title>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="narrow">
+  <h1>Haru</h1>
+  <p class="muted">A safety net for family members who live alone.</p>
+  <form class="card" id="f">
+    <label for="email">Email</label>
+    <input id="email" type="email" autocomplete="username" required>
+    <label for="password">Password</label>
+    <input id="password" type="password" autocomplete="current-password" required>
+    <div class="form-actions"><button class="primary" type="submit">Log in</button></div>
+    <p class="error" id="err"></p>
+  </form>
+  <p class="muted small">No account? Haru accounts are by invitation. Ask the person who set up Haru for your family to send you an invite link.</p>
+</div>
+<script type="module" src="/js/login.js"></script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Join Haru</title>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="narrow">
+  <h1>Join Haru</h1>
+  <div id="loading" class="muted">Checking your invite…</div>
+  <div id="bad" class="card hidden"><p class="error" id="bad-msg"></p></div>
+
+  <form id="f" class="card hidden">
+    <p id="intro"></p>
+    <label for="email">Email</label>
+    <input id="email" type="email" autocomplete="username" readonly>
+    <div id="pw-block">
+      <label for="password">Choose a password (at least 10 characters)</label>
+      <input id="password" type="password" autocomplete="new-password" minlength="10">
+    </div>
+    <p class="small muted">Haru will message you on Telegram if it can't reach them or they need help. Haru is not an emergency service: in an emergency, call 911.</p>
+    <div class="form-actions"><button class="primary" type="submit" id="go">Join</button></div>
+    <p class="error" id="err"></p>
+  </form>
+</div>
+<script type="module" src="/js/invite.js"></script>
+</body>
+</html>

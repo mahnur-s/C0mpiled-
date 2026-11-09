@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard · Haru</title>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<main class="page">
+  <div id="tg-note" class="note hidden">
+    <span>Connect Telegram so Haru can alert you if something is wrong.</span>
+    <button class="primary" id="tg-connect">Connect Telegram</button>
+  </div>
+  <div id="tabs" class="tabs"></div>
+  <div id="empty" class="empty hidden"></div>
+
+  <div id="dash" class="hidden">
+    <div id="status" class="status ok">
+      <p class="t" id="st-t"></p>
+      <p class="h" id="st-h"></p>
+      <p class="s" id="st-s"></p>
+      <p class="acked hidden" id="st-ack"></p>
+    </div>
+    <div class="actions">
+      <button class="primary hidden" id="b-ack">I'm on it</button>
+      <button class="hidden" id="b-resolve">Mark resolved</button>
+      <button id="b-call">Ask Haru to call now</button>
+      <a class="btn" id="b-phone">Call them yourself</a>
+      <span id="pause-box">
+        <select id="pause-len" aria-label="Pause length">
+          <option value="1">1 day</option><option value="3">3 days</option>
+          <option value="7">1 week</option><option value="14">2 weeks</option>
+        </select>
+        <button id="b-pause">Pause monitoring</button>
+      </span>
+      <button class="hidden" id="b-resume">Resume monitoring</button>
+      <span class="error" id="act-err"></span>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><p class="k">Last phone activity</p><p class="v" id="m-last"></p><p class="n" id="m-last-n"></p></div>
+      <div class="metric"><p class="k">Last check-in call</p><p class="v" id="m-check"></p><p class="n" id="m-check-n"></p></div>
+      <div class="metric"><p class="k">Their phone</p><p class="v" id="m-dev"></p><p class="n" id="m-dev-n"></p></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card"><h3>What Haru has done</h3><div id="feed"></div></div>
+      <div>
+        <div class="card"><h3>Check-in calls</h3><div id="calls"></div></div>
+        <div class="card"><h3>Family</h3><div id="family"></div>
+          <p class="small muted" id="settings"></p>
+        </div>
+      </div>
+    </div>
+    <p class="small muted">Haru is not an emergency service. If you think someone is in danger, call 911.</p>
+  </div>
+</main>
+<script type="module" src="/js/app.js"></script>
+</body>
+</html>

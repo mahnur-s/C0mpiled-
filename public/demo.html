@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulator · Haru</title>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<main class="page">
+  <div class="note warn"><span>Demo mode: this simulates the senior's phone and the check-in call. Real families never see this page.</span></div>
+  <div class="actions"><label for="who" class="hidden">Person</label><select id="who"></select></div>
+  <div class="demo-grid">
+    <section>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span id="p-time"></span><span>Haru</span></div>
+        <div class="view" id="v-home">
+          <p class="greet" id="greet"></p>
+          <p class="clock" id="p-clock"></p>
+          <p class="sub" id="p-last"></p>
+          <button class="big" id="b-use">Use the phone (unlock)</button>
+          <button class="big green" id="b-ok">I'm OK</button>
+          <div class="demo-btns">
+            <button id="b-ff">Skip ahead 6 hours</button>
+            <button id="b-ff1">Skip ahead 15 min</button>
+          </div>
+        </div>
+        <div class="view hidden ringing" id="v-ring">
+          <div class="avatar">☎</div>
+          <p class="caller">Haru is calling</p>
+          <p class="quote" id="ring-quote"></p>
+          <div class="demo-btns">
+            <button data-say="Oh, I'm fine dear. I was taking a nap. I ate lunch and took my medicine.">Answer: "I'm fine"</button>
+            <button data-say="I'm a bit dizzy today and I forgot my pills this morning.">Answer: "I'm dizzy"</button>
+            <button data-say="I fell in the bathroom and I can't get up. My hip hurts. Please help me.">Answer: "I fell"</button>
+            <button data-say="">Don't answer</button>
+          </div>
+          <label for="say">Or type what they say</label>
+          <input id="say" placeholder="Type an answer and press Enter">
+        </div>
+      </div></div>
+    </section>
+    <section>
+      <div id="status" class="status ok"><p class="t">What the family sees</p><p class="h" id="st-h"></p><p class="s" id="st-s"></p></div>
+      <p><a id="dash-link" href="/app.html">Open the full family dashboard</a></p>
+      <div class="card"><h3>Feed</h3><div id="feed"></div></div>
+    </section>
+  </div>
+  <p class="error" id="err"></p>
+</main>
+<script type="module" src="/js/demo.js"></script>
+</body>
+</html>

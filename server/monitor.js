@@ -87,6 +87,7 @@ function createMonitor({ db, config, now, vapi, telegram, classify }) {
     if (!telegram.configured) logEvent(s.id, 'bad', 'Alert NOT sent: Telegram is not configured on the server.');
     else if (!chats.length) logEvent(s.id, 'bad', 'Alert NOT sent: no family member has connected Telegram yet.');
     else if (!delivered) logEvent(s.id, 'bad', 'Alert NOT delivered: Telegram rejected every message.');
+    else logEvent(s.id, 'ok', `Alert delivered on Telegram to ${delivered} ${delivered === 1 ? 'person' : 'people'}.`);
     return delivered;
   }
 
@@ -175,7 +176,7 @@ function createMonitor({ db, config, now, vapi, telegram, classify }) {
         logEvent(s.id, 'warn', `${s.name} didn't answer${why}. Haru will try again at ${fmtTime(retryAt, s.timezone)}.`);
       } else {
         setPhase(s.id, 'watching', { watch_from: t });
-        logEvent(s.id, 'bad', `${s.name} didn't answer ${call.attempt} check-in calls${why}. Urgent alert sent.`);
+        logEvent(s.id, 'bad', `${s.name} didn't answer ${call.attempt} check-in calls${why}. Alerting family.`);
         await openIncident(s, 'emergency', `${s.name} is not answering check-in calls.`,
           alertHtml(s, 'no_answer', { calls: call.attempt }));
       }
@@ -187,10 +188,10 @@ function createMonitor({ db, config, now, vapi, telegram, classify }) {
     if (result.status === 'ok') {
       logEvent(s.id, 'ok', `Check-in call: ${summary}`);
     } else if (result.status === 'concern') {
-      logEvent(s.id, 'warn', `Check-in call: ${summary} Alert sent.`);
+      logEvent(s.id, 'warn', `Check-in call: ${summary} Alerting family.`);
       await openIncident(s, 'concern', summary, alertHtml(s, 'concern', { summary }));
     } else {
-      logEvent(s.id, 'bad', `Check-in call: ${summary}${where ? ` (${where})` : ''} Urgent alert sent.`);
+      logEvent(s.id, 'bad', `Check-in call: ${summary}${where ? ` (${where})` : ''} Alerting family.`);
       await openIncident(s, 'emergency', summary, alertHtml(s, 'emergency', { summary, where }));
     }
     return result;

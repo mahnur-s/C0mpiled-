@@ -25,9 +25,14 @@ module.exports = (app) => {
     const device = db.prepare(
       'SELECT id, model, app_version, battery, usage_access, last_seen, created_at FROM devices WHERE senior_id = ? AND revoked_at IS NULL ORDER BY last_seen DESC LIMIT 1',
     ).get(s.id);
+    const status = monitor.statusOf(s);
+    if (status.incident && status.incident.acked_by) {
+      const u = db.prepare('SELECT name FROM users WHERE id = ?').get(status.incident.acked_by);
+      status.incident = { ...status.incident, acked_by_name: u ? u.name : null };
+    }
     return {
       senior: seniorFields(s),
-      status: monitor.statusOf(s),
+      status,
       device: { note: monitor.deviceNote(s), ...(device || {}) },
       family: monitor.familyOf(s.id).map((f) => ({ name: f.name, relationship: f.relationship, telegramLinked: !!f.telegram_chat_id })),
       events: db.prepare('SELECT at, kind, text FROM events WHERE senior_id = ? ORDER BY at DESC, id DESC LIMIT 50').all(s.id),
